@@ -187,6 +187,61 @@ Fragment fragmentShaderGasGiant(Fragment& fragment) {
     return fragment;
 }
 
+Fragment fragmentShaderJupiter(Fragment& fragment) {
+    Color color;
+
+    // Coordenadas del fragmento
+    float x = fragment.originalPos.x;
+    float y = fragment.originalPos.y;
+    float z = fragment.originalPos.z;
+    float radius = sqrt(x*x + y*y + z*z);
+
+    // Convertir coordenadas a UV
+    float u = atan2(x, z) / (2.0f * M_PI);
+    float v = acos(y / radius) / M_PI;
+
+    // Parámetros para las franjas
+    float borderSize = 0.08f; // Tamaño de la frontera de mezcla
+
+    // Determinar el color basado en la coordenada V
+    glm::vec3 tmpColor;
+    float stripeWidth = 1.0f / 7.0f; // 7 franjas
+    int stripeIndex = int(v / stripeWidth);
+    float stripePosition = (v - stripeWidth * stripeIndex) / stripeWidth;
+
+    // Colores de las franjas
+    glm::vec3 stripeColors[7] = {
+            glm::vec3(0.7f, 0.5f, 0.4f), // Tonos de marrón y beige
+            glm::vec3(0.9f, 0.7f, 0.6f),
+            glm::vec3(0.6f, 0.4f, 0.3f),
+            glm::vec3(0.8f, 0.6f, 0.5f),
+            glm::vec3(0.5f, 0.3f, 0.2f),
+            glm::vec3(0.7f, 0.5f, 0.4f),
+            glm::vec3(0.6f, 0.4f, 0.3f)
+    };
+
+    glm::vec3 colorBelow = stripeColors[stripeIndex % 7];
+    glm::vec3 colorAbove = stripeColors[(stripeIndex + 1) % 7];
+    float mixFactor = glm::smoothstep(0.5f - borderSize, 0.5f + borderSize, stripePosition);
+    tmpColor = mix(colorBelow, colorAbove, mixFactor);
+
+    // Agregar la Gran Mancha Roja
+    glm::vec2 manchaPosition = glm::vec2(0.4f, 0.5f); // Posición de la mancha roja en UV
+    float manchaRadius = 0.1f; // Tamaño de la mancha
+    float manchaDistance = distance(glm::vec2(u, v), manchaPosition);
+    float manchaFactor = 1.0f - glm::smoothstep(0.0f, manchaRadius, manchaDistance);
+    glm::vec3 manchaColor = glm::vec3(0.3f, 0.1f, 0.1f); // Color oscuro para la mancha
+    tmpColor = mix(tmpColor, manchaColor, manchaFactor);
+
+    color = Color(tmpColor.x, tmpColor.y, tmpColor.z);
+
+    // Aplicar la intensidad de iluminación
+    fragment.color = color * fragment.intensity;
+
+    return fragment;
+}
+
+
 
 
 

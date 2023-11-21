@@ -86,7 +86,7 @@ void render(const std::vector<glm::vec3>& VBO, const Uniforms& uniforms) {
     // 4. Fragment Shader
     // Asumiendo que 'fragments' es el vector que contiene los fragmentos
     for (auto & i : fragments) {
-        const Fragment& fragment = fragmentShaderGasGiant(i);
+        const Fragment& fragment = fragmentShaderJupiter(i);
         // Aplicar el fragment shader para calcular el color final
         point(fragment);  // Ten en cuenta las condiciones de carrera potenciales aquí
     }
@@ -155,7 +155,7 @@ int main(int argc, char* argv[]) {
 
     // Initialize a Camera object
     Camera camera;
-    camera.cameraPosition = glm::vec3(0.0f, 0.0f, -2.5f);
+    camera.cameraPosition = glm::vec3(0.0f, 0.0f, -3.0f);
     camera.targetPosition = glm::vec3(0.0f, 0.0f, 0.0f);
     camera.upVector = glm::vec3(0.0f, 1.0f, 0.0f);
 
@@ -163,13 +163,13 @@ int main(int argc, char* argv[]) {
     float fovInDegrees = 45.0f;
     float aspectRatio = static_cast<float>(SCREEN_WIDTH) / static_cast<float>(SCREEN_HEIGHT); // Assuming a screen resolution of 800x600
     float nearClip = 0.1f;
-    float farClip = 100.0f;
+    float farClip = 80.0f;
     uniforms.projection = glm::perspective(glm::radians(fovInDegrees), aspectRatio, nearClip, farClip);
 
     uniforms.viewport = createViewportMatrix(SCREEN_WIDTH, SCREEN_HEIGHT);
     Uint32 frameStart, frameTime;
     std::string title = "FPS: ";
-    int speed = 100;
+    int speed = 120;
 
     bool running = true;
     while (running) {
