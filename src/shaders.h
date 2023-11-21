@@ -220,6 +220,7 @@ Fragment fragmentShaderJupiter(Fragment& fragment) {
             glm::vec3(0.6f, 0.4f, 0.3f)
     };
 
+
     glm::vec3 colorBelow = stripeColors[stripeIndex % 7];
     glm::vec3 colorAbove = stripeColors[(stripeIndex + 1) % 7];
     float mixFactor = glm::smoothstep(0.5f - borderSize, 0.5f + borderSize, stripePosition);
