@@ -243,6 +243,50 @@ Fragment fragmentShaderJupiter(Fragment& fragment) {
 }
 
 
+Fragment fragmentShaderMars(Fragment& fragment) {
+    Color color;
+
+    glm::vec3 groundColor = glm::vec3(0.35f, 0.15f, 0.05f); // Marrón claro
+    glm::vec3 oceanColor = glm::vec3(0.45f, 0.25f, 0.15f); // Marrón oscuro
+
+    float x = fragment.originalPos.x;
+    float y = fragment.originalPos.y;
+    float z = fragment.originalPos.z;
+    float radius = sqrt(x*x + y*y + z*z);
+
+    glm::vec3 uv = glm::vec3(
+            atan2(x, z),
+            acos(y / radius),
+            radius
+    );
+
+    FastNoiseLite noiseGenerator;
+    noiseGenerator.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+
+    // Capa base: Océano y terreno
+    float baseNoiseZoom = 150.0f;
+    float baseNoise = noiseGenerator.GetNoise(uv.x * baseNoiseZoom, uv.y * baseNoiseZoom, uv.z * baseNoiseZoom);
+
+    // Capa de terreno: detalles del terreno
+    float terrainNoiseZoom = 300.0f;
+    float terrainNoise = noiseGenerator.GetNoise(uv.x * terrainNoiseZoom + 1000, uv.y * terrainNoiseZoom, uv.z * terrainNoiseZoom);
+
+    // Lógica para mezclar océano y terreno
+    glm::vec3 tmpColor = (baseNoise < 0.0f) ? oceanColor : groundColor;
+    tmpColor = mix(tmpColor, groundColor, glm::clamp(terrainNoise, 0.0f, 1.0f));
+
+    color = Color(tmpColor.x, tmpColor.y, tmpColor.z);
+
+    // Aplicar la intensidad de iluminación
+    fragment.color = color * fragment.intensity;
+
+    return fragment;
+}
+
+
+
+
+
 
 
 
