@@ -85,9 +85,8 @@ Fragment fragmentShaderSun(Fragment& fragment) {
 Fragment fragmentShaderEarth5(Fragment& fragment) {
     Color color;
 
-    glm::vec3 groundColor = glm::vec3(0.44f, 0.51f, 0.33f);
+    glm::vec3 groundColor = glm::vec3(0.13f, 0.55f, 0.13f);
     glm::vec3 oceanColor = glm::vec3(0.12f, 0.38f, 0.57f);
-    glm::vec3 vegetationColor = glm::vec3(0.13f, 0.55f, 0.13f);
     glm::vec3 cloudColor = glm::vec3(0.9f, 0.9f, 0.9f); // Un blanco ligeramente gris para las nubes
     glm::vec3 iceColor = glm::vec3(1.0f, 1.0f, 1.0f); // Blanco puro para el hielo polar
 
@@ -125,10 +124,6 @@ Fragment fragmentShaderEarth5(Fragment& fragment) {
     glm::vec3 tmpColor = (baseNoise < 0.0f) ? oceanColor : groundColor;
     tmpColor = mix(tmpColor, groundColor, glm::clamp(terrainNoise, 0.0f, 1.0f));
 
-    // Asegurarse de que la vegetación solo se aplique en áreas de terreno
-    if (baseNoise > 0.2f) { // Ajustar este umbral según sea necesario
-        tmpColor = mix(tmpColor, vegetationColor, glm::clamp(vegetationNoise, 0.0f, 1.0f));
-    }
 
     // Capa de hielo polar: aplicada en función de la latitud (coordenada Y)
     float poleThreshold = 0.8f; // Umbral para la aplicación de hielo en los polos
@@ -150,46 +145,39 @@ Fragment fragmentShaderEarth5(Fragment& fragment) {
 Fragment fragmentShaderGasGiant(Fragment& fragment) {
     Color color;
 
-    // Define los colores
-    glm::vec3 blueColor = glm::vec3(0.0f, 0.0f, 1.0f); // Azul
-    glm::vec3 purpleColor = glm::vec3(0.5f, 0.0f, 0.5f); // Morado
-    glm::vec3 redColor = glm::vec3(1.0f, 0.0f, 0.0f); // Rojo
+    // Define los tonos de verde
+    glm::vec3 lightGreen = glm::vec3(0.68f, 1.0f, 0.18f); // Verde claro
+    glm::vec3 midGreen = glm::vec3(0.4f, 0.8f, 0.13f); // Verde medio
+    glm::vec3 darkGreen = glm::vec3(0.0f, 0.39f, 0.0f); // Verde oscuro
 
     float x = fragment.originalPos.x;
     float y = fragment.originalPos.y;
     float z = fragment.originalPos.z;
 
-    glm::vec3 uv = glm::vec3(
-            atan2(x, z) / (2.0f * M_PI),
-            acos(y / sqrt(x*x + y*y + z*z)) / M_PI,
-            sqrt(x*x + y*y + z*z)
-    );
+    // Crear una inclinación en las franjas
+    float diagonalFactor = 0.02f; // Controla el grado de inclinación
+    float inclinedV = acos((y + diagonalFactor * x) / sqrt(x*x + y*y + z*z)) / M_PI;
 
-    FastNoiseLite noiseGenerator;
-    noiseGenerator.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+    // Parámetros para controlar el ancho de la mezcla en las fronteras
+    float borderSize = 0.05f; // Tamaño de la frontera de mezcla
+    float lowerBorder = 0.33f - borderSize;
+    float upperBorder = 0.33f + borderSize;
+    float middleBorderLow = 0.66f - borderSize;
+    float middleBorderHigh = 0.66f + borderSize;
 
-    // Generar ruido para las capas de color
-    float noiseZoomBlue = 0.1f;
-    float noiseZoomPurple = 0.15f;
-    float noiseZoomRed = 0.2f;
-
-    float noiseValueBlue = noiseGenerator.GetNoise(uv.x * noiseZoomBlue, uv.y * noiseZoomBlue, uv.z * noiseZoomBlue);
-    float noiseValuePurple = noiseGenerator.GetNoise(uv.x * noiseZoomPurple + 1000, uv.y * noiseZoomPurple, uv.z * noiseZoomPurple);
-    float noiseValueRed = noiseGenerator.GetNoise(uv.x * noiseZoomRed + 2000, uv.y * noiseZoomRed, uv.z * noiseZoomRed);
-
-    // Normalizar los valores de ruido
-    noiseValueBlue = (noiseValueBlue + 1.0f) / 2.0f;
-    noiseValuePurple = (noiseValuePurple + 1.0f) / 2.0f;
-    noiseValueRed = (noiseValueRed + 1.0f) / 2.0f;
-
-    // Aplicar los colores en función del valor de ruido, superponiéndolos
-    glm::vec3 tmpColor = glm::vec3(0.0f, 0.0f, 0.0f); // Color inicial neutro
-    tmpColor += blueColor * noiseValueBlue;
-    tmpColor += purpleColor * noiseValuePurple;
-    tmpColor += redColor * noiseValueRed;
-
-    // Limitar el color para que no supere el valor máximo
-    tmpColor = glm::clamp(tmpColor, 0.0f, 1.0f);
+    // Determinar el color basado en la coordenada V inclinada
+    glm::vec3 tmpColor;
+    if (inclinedV < lowerBorder) {
+        tmpColor = lightGreen;
+    } else if (inclinedV < upperBorder) {
+        tmpColor = mix(lightGreen, midGreen, glm::smoothstep(lowerBorder, upperBorder, inclinedV));
+    } else if (inclinedV < middleBorderLow) {
+        tmpColor = midGreen;
+    } else if (inclinedV < middleBorderHigh) {
+        tmpColor = mix(midGreen, darkGreen, glm::smoothstep(middleBorderLow, middleBorderHigh, inclinedV));
+    } else {
+        tmpColor = darkGreen;
+    }
 
     color = Color(tmpColor.x, tmpColor.y, tmpColor.z);
 
@@ -198,6 +186,9 @@ Fragment fragmentShaderGasGiant(Fragment& fragment) {
 
     return fragment;
 }
+
+
+
 
 
 

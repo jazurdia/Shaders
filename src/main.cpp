@@ -57,7 +57,6 @@ void render(const std::vector<glm::vec3>& VBO, const Uniforms& uniforms) {
         transformedVertices[i] = vertexShader(vertex, uniforms);
     }
 
-
     // 2. Primitive Assembly
     std::vector<std::vector<Vertex>> assembledVertices(transformedVertices.size() / 3);
 
@@ -83,7 +82,6 @@ void render(const std::vector<glm::vec3>& VBO, const Uniforms& uniforms) {
             fragments.push_back(fragment);
         }
     }
-
 
     // 4. Fragment Shader
     // Asumiendo que 'fragments' es el vector que contiene los fragmentos
