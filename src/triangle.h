@@ -1,74 +1,84 @@
 #pragma once
-#include "gl.h"
-#include "Vertex.h"
+#include <vector>
+#include <glm/glm.hpp>
+#include "line.h"
+#include "framebuffer.h"
+#include "color.h"
 
-glm::vec3 lightPos = glm::vec3(150.0f, 150.0f, 150.0f);
+glm::vec3 L = glm::vec3(0.0f, 0.0f, 1.0f);
 
-glm::vec3 barycentricCoordinates(const glm::vec3& P, const glm::vec3& A, const glm::vec3& B, const glm::vec3& C) {
-    glm::vec3 s[2];
-    for (int i = 0; i < 2; i++) {
-        s[i][0] = C[i] - A[i];
-        s[i][1] = B[i] - A[i];
-        s[i][2] = A[i] - P[i];
+std::pair<float, float> barycentricCoordinates(const glm::ivec2& P, const glm::vec3& A, const glm::vec3& B, const glm::vec3& C) {
+    glm::vec3 bary = glm::cross(
+        glm::vec3(C.x - A.x, B.x - A.x, A.x - P.x),
+        glm::vec3(C.y - A.y, B.y - A.y, A.y - P.y)
+    );
+
+    if (abs(bary.z) < 1) {
+        return std::make_pair(-1, -1);
     }
-    glm::vec3 u = glm::cross(s[0], s[1]);
-    if (std::abs(u[2]) > 1e-2) {
-        return {1.f - (u.x + u.y) / u.z, u.y / u.z, u.x / u.z};
-    }
-    return {-1, 1, 1};
+
+    return std::make_pair(
+        bary.y / bary.z,
+        bary.x / bary.z
+    );    
 }
 
 std::vector<Fragment> triangle(const Vertex& a, const Vertex& b, const Vertex& c) {
-    glm::vec3 A = a.position;
-    glm::vec3 B = b.position;
-    glm::vec3 C = c.position;
+  std::vector<Fragment> fragments;
+  glm::vec3 A = a.position;
+  glm::vec3 B = b.position;
+  glm::vec3 C = c.position;
 
-    // Calculate the bounding box of the triangle
-    float minX = std::min(std::min(A.x, B.x), C.x);
-    float minY = std::min(std::min(A.y, B.y), C.y);
-    float maxX = std::max(std::max(A.x, B.x), C.x);
-    float maxY = std::max(std::max(A.y, B.y), C.y);
+  float minX = std::min(std::min(A.x, B.x), C.x);
+  float minY = std::min(std::min(A.y, B.y), C.y);
+  float maxX = std::max(std::max(A.x, B.x), C.x);
+  float maxY = std::max(std::max(A.y, B.y), C.y);
 
-    // Cast to int
-    minX = std::floor(minX);
-    minY = std::floor(minY);
-    maxX = std::ceil(maxX);
-    maxY = std::ceil(maxY);
+  // Iterate over each point in the bounding box
+  for (int y = static_cast<int>(std::ceil(minY)); y <= static_cast<int>(std::floor(maxY)); ++y) {
+    for (int x = static_cast<int>(std::ceil(minX)); x <= static_cast<int>(std::floor(maxX)); ++x) {
+      if (x < 0 || y < 0 || y > SCREEN_HEIGHT || x > SCREEN_WIDTH)
+        continue;
+        
+      glm::ivec2 P(x, y);
+      auto barycentric = barycentricCoordinates(P, A, B, C);
+      float w = 1 - barycentric.first - barycentric.second;
+      float v = barycentric.first;
+      float u = barycentric.second;
+      float epsilon = 1e-10;
 
-    // Calculate the normal
-    glm::vec3 normal = glm::normalize(glm::cross(B - A, C - A));
+      if (w < epsilon || v < epsilon || u < epsilon)
+        continue;
+          
+      double z = A.z * w + B.z * v + C.z * u;
+      
+       glm::vec3 normal = glm::normalize( 
+           a.normal * w + b.normal * v + c.normal * u
+       ); 
 
-    std::vector<Fragment> fragments;
-    // Iterate over each point in the bounding box
-    for (int x = minX; x <= maxX; x++) {
-        for (int y = minY; y <= maxY; y++) {
-            glm::vec3 P = glm::vec3(x, y, 0);
+      // glm::vec3 normal = a.normal; // assume flatness
+      float intensity = glm::dot(normal, L);
+      
+      if (intensity < 0)
+        continue;
 
-            // Calculate the barycentric coordinates
-            glm::vec3 barycentric = barycentricCoordinates(P, A, B, C);
+      Color color = Color(255, 255, 255);
 
-            // If the point is inside the triangle
-            if (barycentric.x >= 0 && barycentric.y >= 0 && barycentric.z >= 0) {
-                // Calculate the depth
-                float z = A.z * barycentric.x + B.z * barycentric.y + C.z * barycentric.z;
-//                std::cout << z << std::endl;
+      glm::vec3 worldPos = a.worldPos * w + b.worldPos * v + c.worldPos * u;
+      glm::vec3 originalPos = a.originalPos * w + b.originalPos * v + c.originalPos * u;
 
-                // Calculate the intensity
-                // glm::vec3 lightDir = glm::normalize(lightPos - P);  // Otro tipo de luz
-                glm::vec3 lightDir = glm::normalize(lightPos - a.position);  // Flat shading
-                float intensity = glm::dot(normal, lightDir);
-
-                // Create the fragment
-                Fragment fragment = Fragment{
-                        glm::vec3(x, y, z),
-                        a.color * barycentric.x + b.color * barycentric.y + c.color * barycentric.z,
-                        intensity
-                };
-
-                // Add the fragment to the list
-                fragments.push_back(fragment);
-            }
+      fragments.push_back(
+        Fragment{
+          static_cast<uint16_t>(P.x),
+          static_cast<uint16_t>(P.y),
+          z,
+          color,
+          intensity,
+          worldPos,
+          originalPos
         }
+      );
     }
-    return fragments;
+}
+  return fragments;
 }
