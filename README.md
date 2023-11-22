@@ -1,11 +1,14 @@
 # Shaders
 
 
+
+
 ## Cuerpos Celestes
 
 ### Sol
 ![Sol](Models_Gifs/sun.gif)
 - [x] Deben crear una “estrella” que va a servir como el sol de su sistema solar.
+
 
 ### Tierra
 ![Tierra](Models_Gifs/earth.gif)
