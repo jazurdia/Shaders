@@ -37,47 +37,34 @@ Vertex vertexShader(const Vertex& vertex, const Uniforms& uniforms) {
 }
 
 Fragment fragmentShaderSun(Fragment& fragment) {
-    Color color;
-
     // Define los colores del sol
-    glm::vec3 brightColor = glm::vec3(1.0f, 0.8f, 0.0f); // Amarillo brillante para el centro
-    glm::vec3 darkColor = glm::vec3(1.0f, 0.4f, 0.0f); // Naranja oscuro para los bordes y las manchas
+    glm::vec3 sunColor1 = glm::vec3(252.0f / 255.0f, 211.0f / 255.0f, 0.0f / 255.0f);
+    glm::vec3 sunColor2 = glm::vec3(252.0f / 255.0f, 163.0f / 255.0f, 0.0f / 255.0f);
 
-    float x = fragment.originalPos.x;
-    float y = fragment.originalPos.y;
-    float z = fragment.originalPos.z;
-
+    // Mapeo UV
     glm::vec3 uv = glm::vec3(
-            atan2(x, z) / (2.0f * M_PI),
-            acos(y / sqrt(x*x + y*y + z*z)) / M_PI,
-            sqrt(x*x + y*y + z*z)
+            atan2(fragment.originalPos.x, fragment.originalPos.z),
+            acos(fragment.originalPos.y / sqrt(fragment.originalPos.x * fragment.originalPos.x + fragment.originalPos.y * fragment.originalPos.y + fragment.originalPos.z * fragment.originalPos.z)),
+            sqrt(fragment.originalPos.x * fragment.originalPos.x + fragment.originalPos.y * fragment.originalPos.y + fragment.originalPos.z * fragment.originalPos.z)
     );
 
     FastNoiseLite noiseGenerator;
     noiseGenerator.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
 
-    // Escala grande para manchas grandes
-    float noiseScale = 0.04f;
-    float baseNoise = noiseGenerator.GetNoise(uv.x * noiseScale, uv.y * noiseScale);
+    // Ajuste de la escala del ruido para manchas más grandes y menos numerosas
+    float scale = 3000.0f; // Escala más baja para manchas más grandes
+    float offsetX = 10000.0f;
+    float offsetY = 10000.0f;
 
-    // Agregamos más capas de ruido para crear variaciones en las manchas
-    float noiseScaleLayer = 0.08f; // Una segunda capa de ruido para más detalle en las manchas
-    float layerNoise = noiseGenerator.GetNoise(uv.x * noiseScaleLayer, uv.y * noiseScaleLayer);
+    // Generar el valor de ruido
+    float noiseValue = noiseGenerator.GetNoise((uv.x + offsetX) * scale, (uv.y + offsetY) * scale);
 
-    // Mezclamos las capas de ruido, asegurándonos de que la baseNoise sea la dominante
-    float mixedNoise = baseNoise * 0.6f + layerNoise * 0.4f;
+    // Mezclar los colores basados en el valor de ruido
+    float t = glm::smoothstep(-1.0f, 1.0f, noiseValue); // Mapeo [-1, 1] a [0, 1]
+    glm::vec3 finalColor = glm::mix(sunColor1, sunColor2, t);
 
-    // Normalizamos el ruido mezclado para que esté dentro del rango de 0 a 1
-    mixedNoise = mixedNoise * 0.5f + 0.5f;
-    mixedNoise = glm::clamp(mixedNoise, 0.0f, 1.0f);
-
-    // Mezclamos los colores del sol basándonos en el ruido
-    glm::vec3 tmpColor = mix(brightColor, darkColor, mixedNoise);
-
-    color = Color(tmpColor.x, tmpColor.y, tmpColor.z);
-
-    // La intensidad de la iluminación del sol se mantiene constante
-    fragment.color = color * 1.0f; // Multiplicador de intensidad fijo para evitar sombras
+    // Aplicar el color
+    fragment.color = Color(finalColor.r, finalColor.g, finalColor.b);
 
     return fragment;
 }
@@ -87,57 +74,40 @@ Fragment fragmentShaderEarth5(Fragment& fragment) {
 
     glm::vec3 groundColor = glm::vec3(0.13f, 0.55f, 0.13f);
     glm::vec3 oceanColor = glm::vec3(0.12f, 0.38f, 0.57f);
-    glm::vec3 cloudColor = glm::vec3(0.9f, 0.9f, 0.9f); // Un blanco ligeramente gris para las nubes
-    glm::vec3 iceColor = glm::vec3(1.0f, 1.0f, 1.0f); // Blanco puro para el hielo polar
+    glm::vec3 cloudColor = glm::vec3(1.0f, 1.0f, 1.0f);
+    glm::vec3 iceColor = glm::vec3(0.85f, 0.85f, 0.85f);
 
     float x = fragment.originalPos.x;
     float y = fragment.originalPos.y;
     float z = fragment.originalPos.z;
     float radius = sqrt(x*x + y*y + z*z);
 
-    glm::vec3 uv = glm::vec3(
-            atan2(x, z),
-            acos(y / radius),
-            radius
-    );
+    glm::vec3 uv = glm::vec3(atan2(x, z), acos(y / radius), radius);
 
     FastNoiseLite noiseGenerator;
     noiseGenerator.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
 
-    // Capa base: Océano y terreno
-    float baseNoiseZoom = 100.0f;
-    float baseNoise = noiseGenerator.GetNoise(uv.x * baseNoiseZoom, uv.y * baseNoiseZoom, uv.z * baseNoiseZoom);
-
-    // Capa de terreno: detalles del terreno
-    float terrainNoiseZoom = 300.0f;
-    float terrainNoise = noiseGenerator.GetNoise(uv.x * terrainNoiseZoom + 1000, uv.y * terrainNoiseZoom, uv.z * terrainNoiseZoom);
-
-    // Capa de vegetación: solo sobre el terreno
-    float vegetationNoiseZoom = 600.0f;
-    float vegetationNoise = noiseGenerator.GetNoise(uv.x * vegetationNoiseZoom + 2000, uv.y * vegetationNoiseZoom, uv.z * vegetationNoiseZoom);
-
-    // Capa de nubes
-    float cloudNoiseZoom = 1200.0f; // Aumentar para nubes más grandes y menos numerosas
-    float cloudNoise = noiseGenerator.GetNoise(uv.x * cloudNoiseZoom + 3000, uv.y * cloudNoiseZoom, uv.z * cloudNoiseZoom);
-
-    // Lógica para mezclar océano y terreno
-    glm::vec3 tmpColor = (baseNoise < 0.0f) ? oceanColor : groundColor;
-    tmpColor = mix(tmpColor, groundColor, glm::clamp(terrainNoise, 0.0f, 1.0f));
+    // Simplificando la generación de ruido
+    float noiseScale = 80.0f; // Escala aumentada
+    float noise = noiseGenerator.GetNoise(uv.x * noiseScale, uv.y * noiseScale, uv.z * noiseScale);
 
 
-    // Capa de hielo polar: aplicada en función de la latitud (coordenada Y)
-    float poleThreshold = 0.8f; // Umbral para la aplicación de hielo en los polos
-    float poleFactor = glm::smoothstep(poleThreshold, 1.0f, abs(y / radius));
-    tmpColor = mix(tmpColor, iceColor, poleFactor);
+    // Unificando la lógica de mezcla
+    float landThreshold = 0.0f; // Umbral para mezclar océano y terreno
+    float iceThreshold = 0.8f; // Umbral para hielo polar
+    float cloudThreshold = 0.4f; // Umbral para nubes
 
-    // Mezcla suave para las nubes
-    float cloudFactor = glm::smoothstep(0.4f, 0.6f, cloudNoise);
-    tmpColor = mix(tmpColor, cloudColor, cloudFactor);
+    glm::vec3 baseColor = (noise < landThreshold) ? oceanColor : groundColor;
+    baseColor = mix(baseColor, iceColor, glm::smoothstep(iceThreshold, 1.0f, abs(y / radius)));
 
-    color = Color(tmpColor.x, tmpColor.y, tmpColor.z);
+    // Mezclar nubes independientemente del tipo de terreno
+    float cloudNoise = noiseGenerator.GetNoise(uv.x * noiseScale * 5.0f, uv.y * noiseScale * 5.0f, uv.z * noiseScale * 5.0f)*1.5f;
+    if (cloudNoise > cloudThreshold) {
+        baseColor = mix(baseColor, cloudColor, glm::smoothstep(cloudThreshold, 0.6f, cloudNoise));
+    }
 
-    // Aplicar la intensidad de iluminación
-    fragment.color = color * fragment.intensity;
+    color = Color(baseColor.x, baseColor.y, baseColor.z);
+    fragment.color = color * 0.8;
 
     return fragment;
 }
@@ -242,7 +212,6 @@ Fragment fragmentShaderJupiter(Fragment& fragment) {
     return fragment;
 }
 
-
 Fragment fragmentShaderMars(Fragment& fragment) {
     Color color;
 
@@ -283,14 +252,96 @@ Fragment fragmentShaderMars(Fragment& fragment) {
     return fragment;
 }
 
+Fragment fragmentShaderUranus(Fragment& fragment) {
+    Color color;
 
+    // Define el color base para Urano
+    glm::vec3 baseColor = glm::vec3(0.21f, 0.69f, 0.87f); // Azul verdoso
 
+    // Define el color para las nubes
+    glm::vec3 cloudColor = glm::vec3(0.85f, 0.85f, 0.92f); // Blanco azulado para nubes
 
+    float x = fragment.originalPos.x;
+    float y = fragment.originalPos.y;
+    float z = fragment.originalPos.z;
+    float radius = sqrt(x*x + y*y + z*z);
 
+    glm::vec3 uv = glm::vec3(
+            atan2(x, z),
+            acos(y / radius),
+            radius
+    );
 
+    FastNoiseLite noiseGenerator;
+    noiseGenerator.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
 
+    // Ruido para las nubes
+    float cloudNoiseScale = 0.4f;
+    float cloudNoise = noiseGenerator.GetNoise(uv.x * cloudNoiseScale, uv.y * cloudNoiseScale);
 
+    // Normalizar el valor del ruido para las nubes
+    cloudNoise = (cloudNoise + 1.0f) / 2.0f;
 
+    // Crear patrones de nubes sutiles
+    float cloudFactor = glm::smoothstep(0.4f, 0.6f, cloudNoise);
 
+    // Mezclar colores basados en el ruido de las nubes
+    glm::vec3 tmpColor = mix(baseColor, cloudColor, cloudFactor);
 
+    color = Color(tmpColor.x, tmpColor.y, tmpColor.z);
+
+    // Aplicar la intensidad de iluminación
+    fragment.color = color * fragment.intensity;
+
+    return fragment;
+}
+
+Fragment fragmentShaderNeptune(Fragment& fragment) {
+    Color color;
+
+    // Define el color base para Neptuno
+    glm::vec3 baseColor = glm::vec3(0.05f, 0.2f, 0.5f); // Azul oscuro
+
+    // Define el color para las nubes
+    glm::vec3 cloudColor = glm::vec3(0.7f, 0.7f, 0.9f); // Azul claro para nubes
+
+    float x = fragment.originalPos.x;
+    float y = fragment.originalPos.y;
+    float z = fragment.originalPos.z;
+    float radius = sqrt(x*x + y*y + z*z);
+
+    glm::vec3 uv = glm::vec3(
+            atan2(x, z),
+            acos(y / radius),
+            radius
+    );
+
+    FastNoiseLite noiseGenerator;
+    noiseGenerator.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+
+    // Ruido para las nubes
+    float cloudNoiseScale = 0.3f;
+    float cloudNoise = noiseGenerator.GetNoise(uv.x * cloudNoiseScale + 1000, uv.y * cloudNoiseScale);
+
+    // Normalizar el valor del ruido para las nubes
+    cloudNoise = (cloudNoise + 1.0f) / 2.0f;
+
+    // Crear patrones de nubes a lo largo del ecuador
+    float cloudBandWidth = 0.1f; // Ancho de la banda de nubes
+    float cloudBandCenter = 0.5f; // Posición del centro de la banda de nubes
+    float lowerBandEdge = cloudBandCenter - cloudBandWidth;
+    float upperBandEdge = cloudBandCenter + cloudBandWidth;
+    float vNormalized = uv.y / M_PI; // Normalizar v a [0, 1]
+    float cloudFactor = glm::smoothstep(lowerBandEdge, upperBandEdge, vNormalized);
+
+    // Mezclar colores basados en el ruido de las nubes
+    glm::vec3 tmpColor = mix(baseColor, cloudColor, cloudFactor * cloudNoise);
+
+    color = Color(tmpColor.x, tmpColor.y, tmpColor.z);
+
+    // Aplicar la intensidad de iluminación
+    fragment.color = color * fragment.intensity;
+
+    return fragment;
+}
 

@@ -1,15 +1,26 @@
 # Shaders
-## Description
-This is a collection of shaders that I've written as part of my Computer Graphics course at Universidad del Valle.
-It's also part of a larger project, in which I will be showint the whole Solar System. 
 
-This uses C++, SLD2 and GLM for the code. 
 
-## Rúbrica
-- [x] [Criterio subjetivo] 30 puntos según la creatividad de su diseño.
-- [x] 40 puntos según la complejidad de sus shaders que creen (en nuestro sistema, la tierra sería el más complejo y urano el más simple)
-    - Pueden suponer 10 puntos por cada “capa” del shader que afecte el color. 4 capas les daría todos los puntos.
-- [ ] 10 puntos por cada planeta extra que diseñen más allá de los 3 requeridos por el ejercicio para un máximo de 30 puntos
-- [ ] 20 puntos por implementar un sistema de anillos en sus planetas gaseosos
-  Aplican las mismas reglas de no usar texturas ni materiales
-- [x] 20 puntos por implementar una luna en un planeta rocoso
+## Cuerpos Celestes
+
+### Sol
+![Sol](Models_Gifs/sun.gif)
+- [x] Deben crear una “estrella” que va a servir como el sol de su sistema solar.
+
+### Tierra
+![Tierra](Models_Gifs/earth.gif)
+Para realizar la tierra, se utilizaron 4 capas de Noise, para simular el agua, tierra firme, nubes y hielo polar. Es también un planeta rocoso.
+- [x] Deben crear un planeta rocoso.
+- [x] Pueden suponer 10 puntos por cada “capa” del shader que afecte el color. 4 capas les daría todos los puntos.
+
+### Jupiter
+![Jupiter](Models_Gifs/jupiter.gif)
+- [x] Deben crear un gigante gaseoso.
+
+### Marte
+![Marte](Models_Gifs/mars.gif)
+- [x] 10 puntos por cada planeta extra que diseñen.
+
+### Neptuno
+![Neptuno](Models_Gifs/neptune.gif)
+- [x] 10 puntos por cada planeta extra que diseñen.
