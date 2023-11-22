@@ -86,7 +86,7 @@ void render(const std::vector<glm::vec3>& VBO, const Uniforms& uniforms) {
     // 4. Fragment Shader
     // Asumiendo que 'fragments' es el vector que contiene los fragmentos
     for (auto & i : fragments) {
-        const Fragment& fragment = fragmentShaderEarth5(i);
+        const Fragment& fragment = fragmentShaderUranusRevised(i);
         // Aplicar el fragment shader para calcular el color final
         point(fragment);  // Ten en cuenta las condiciones de carrera potenciales aquí
     }

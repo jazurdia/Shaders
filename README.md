@@ -6,7 +6,7 @@
 ## Cuerpos Celestes
 
 ### Sol
-![Sol](Models_Gifs/sun.gif)
+![Sol](Models_Gifs/sun2.gif)
 - [x] Deben crear una “estrella” que va a servir como el sol de su sistema solar.
 
 
@@ -26,4 +26,8 @@ Para realizar la tierra, se utilizaron 4 capas de Noise, para simular el agua, t
 
 ### Neptuno
 ![Neptuno](Models_Gifs/neptune.gif)
+- [x] 10 puntos por cada planeta extra que diseñen.
+
+### Urano
+![Urano](Models_Gifs/uranus.gif)
 - [x] 10 puntos por cada planeta extra que diseñen.

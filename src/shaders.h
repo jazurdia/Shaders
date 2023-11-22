@@ -252,45 +252,42 @@ Fragment fragmentShaderMars(Fragment& fragment) {
     return fragment;
 }
 
-Fragment fragmentShaderUranus(Fragment& fragment) {
+Fragment fragmentShaderUranusRevised(Fragment& fragment) {
     Color color;
 
-    // Define el color base para Urano
+    // Colores base y de nubes
     glm::vec3 baseColor = glm::vec3(0.21f, 0.69f, 0.87f); // Azul verdoso
-
-    // Define el color para las nubes
     glm::vec3 cloudColor = glm::vec3(0.85f, 0.85f, 0.92f); // Blanco azulado para nubes
 
+    // Posición original del fragmento
     float x = fragment.originalPos.x;
     float y = fragment.originalPos.y;
     float z = fragment.originalPos.z;
-    float radius = sqrt(x*x + y*y + z*z);
 
-    glm::vec3 uv = glm::vec3(
-            atan2(x, z),
-            acos(y / radius),
-            radius
-    );
+    const float PI = 3.14159265358979323846f;
 
-    FastNoiseLite noiseGenerator;
-    noiseGenerator.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+    // Calcula UV teniendo en cuenta una transición más suave
+    glm::vec2 uv;
+    uv.x = atan2(x, z) / (2.0f * PI);
+    uv.y = acos(y / sqrt(x*x + y*y + z*z)) / PI;
 
     // Ruido para las nubes
-    float cloudNoiseScale = 0.4f;
+    static FastNoiseLite noiseGenerator; // Estático para mejor rendimiento
+    noiseGenerator.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+
+    // Escala del ruido para una transición más suave
+    float cloudNoiseScale = 0.6f;
     float cloudNoise = noiseGenerator.GetNoise(uv.x * cloudNoiseScale, uv.y * cloudNoiseScale);
+    cloudNoise = (cloudNoise + 1.0f) / 2.0f; // Normaliza el valor del ruido
 
-    // Normalizar el valor del ruido para las nubes
-    cloudNoise = (cloudNoise + 1.0f) / 2.0f;
+    // Transición suave entre colores
+    float cloudFactor = glm::smoothstep(0.3f, 0.7f, cloudNoise);
 
-    // Crear patrones de nubes sutiles
-    float cloudFactor = glm::smoothstep(0.4f, 0.6f, cloudNoise);
-
-    // Mezclar colores basados en el ruido de las nubes
+    // Mezcla colores
     glm::vec3 tmpColor = mix(baseColor, cloudColor, cloudFactor);
-
     color = Color(tmpColor.x, tmpColor.y, tmpColor.z);
 
-    // Aplicar la intensidad de iluminación
+    // Aplica la intensidad de iluminación
     fragment.color = color * fragment.intensity;
 
     return fragment;
